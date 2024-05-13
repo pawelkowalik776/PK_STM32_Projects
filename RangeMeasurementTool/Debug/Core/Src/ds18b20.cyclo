@@ -1,0 +1,6 @@
+../Core/Src/ds18b20.c:22:19:ds18b20_init	1
+../Core/Src/ds18b20.c:27:19:ds18b20_read_address	4
+../Core/Src/ds18b20.c:47:26:send_cmd	4
+../Core/Src/ds18b20.c:65:19:ds18b20_start_measure	1
+../Core/Src/ds18b20.c:70:26:ds18b20_read_scratchpad	4
+../Core/Src/ds18b20.c:88:7:ds18b20_get_temp	2

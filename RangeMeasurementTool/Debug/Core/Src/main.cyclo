@@ -1,0 +1,7 @@
+../Core/Src/main.c:96:5:__io_putchar	2
+../Core/Src/main.c:106:14:calc_sound_speed	1
+../Core/Src/main.c:112:5:howManyDigits	2
+../Core/Src/main.c:123:6:HAL_TIM_PeriodElapsedCallback	10
+../Core/Src/main.c:196:5:main	1
+../Core/Src/main.c:257:6:SystemClock_Config	4
+../Core/Src/main.c:310:6:Error_Handler	1
