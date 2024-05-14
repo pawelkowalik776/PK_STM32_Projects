@@ -33,14 +33,14 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h \
  ../Core/Inc/dac.h ../Core/Inc/main.h ../Core/Inc/dma.h ../Core/Inc/spi.h \
  ../Core/Inc/tim.h ../Core/Inc/usart.h ../Core/Inc/gpio.h \
- C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/hagl.h \
+ C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/hagl.h \
  ../Core/Inc/hagl_hal.h ../Core/Inc/lcd.h \
- C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/bitmap.h \
- C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/bitmap.h \
- C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/font6x9.h \
- C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/rgb565.h \
- C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/rgb888.h \
- C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/hsl.h \
+ C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/bitmap.h \
+ C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/bitmap.h \
+ C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/font6x9.h \
+ C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/rgb565.h \
+ C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/rgb888.h \
+ C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/hsl.h \
  ../Core/Inc/ds18b20.h ../Core/Inc/ws2812b.h \
  ../Drivers/CMSIS/Device/ST/STM32L4xx/Include/stm32l476xx.h
 ../Core/Inc/main.h:
@@ -83,15 +83,15 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Core/Inc/tim.h:
 ../Core/Inc/usart.h:
 ../Core/Inc/gpio.h:
-C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/hagl.h:
+C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/hagl.h:
 ../Core/Inc/hagl_hal.h:
 ../Core/Inc/lcd.h:
-C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/bitmap.h:
-C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/bitmap.h:
-C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/font6x9.h:
-C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/rgb565.h:
-C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/rgb888.h:
-C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/hsl.h:
+C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/bitmap.h:
+C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/bitmap.h:
+C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/font6x9.h:
+C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/rgb565.h:
+C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/rgb888.h:
+C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/hsl.h:
 ../Core/Inc/ds18b20.h:
 ../Core/Inc/ws2812b.h:
 ../Drivers/CMSIS/Device/ST/STM32L4xx/Include/stm32l476xx.h:

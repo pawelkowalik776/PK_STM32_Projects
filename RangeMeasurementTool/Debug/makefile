@@ -61,8 +61,8 @@ all: main-build
 main-build: RangeMeasurementTool.elf secondary-outputs
 
 # Tool invocations
-RangeMeasurementTool.elf RangeMeasurementTool.map: $(OBJS) $(USER_OBJS) C:\Users\dziam\STM32CubeIDE\PK_GIT_DESKTOP\PK_STM32_training\___project1\STM32L476RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "RangeMeasurementTool.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\dziam\STM32CubeIDE\PK_GIT_DESKTOP\PK_STM32_training\___project1\STM32L476RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="RangeMeasurementTool.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+RangeMeasurementTool.elf RangeMeasurementTool.map: $(OBJS) $(USER_OBJS) C:\Users\dziam\STM32CubeIDE\PK_GIT_DESKTOP\PK_STM32_Projects\RangeMeasurementTool\STM32L476RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "RangeMeasurementTool.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\dziam\STM32CubeIDE\PK_GIT_DESKTOP\PK_STM32_Projects\RangeMeasurementTool\STM32L476RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="RangeMeasurementTool.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

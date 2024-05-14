@@ -1,5 +1,5 @@
-C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/rgb888.h:49:19:min	16	static
-C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_training/___project1/hagl/include/rgb888.h:56:19:max	16	static
+C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/rgb888.h:49:19:min	16	static
+C:/Users/dziam/STM32CubeIDE/PK_GIT_DESKTOP/PK_STM32_Projects/RangeMeasurementTool/hagl/include/rgb888.h:56:19:max	16	static
 ../hagl/src/hagl.c:65:6:hagl_set_clip_window	16	static
 ../hagl/src/hagl.c:72:6:hagl_put_pixel	16	static
 ../hagl/src/hagl.c:88:9:hagl_get_pixel	16	static
