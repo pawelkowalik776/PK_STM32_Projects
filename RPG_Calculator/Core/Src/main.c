@@ -31,6 +31,8 @@
 #include "rgb565.h"
 #include <stdint.h>
 #include "images.h"
+#include <stdio.h>
+#include <wchar.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -80,6 +82,9 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+volatile int32_t encoder_value = 0;
+int16_t prev_value = 0;
+
 // function for sending text using UART (i.e to PC)
 int __io_putchar(int ch)
 {
@@ -92,8 +97,23 @@ int __io_putchar(int ch)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	if (htim == &htim7) { //Timer nr 7 is used for refreshing screen
+	if (htim == &htim6) { //Timer nr 6 is used for refreshing screen
+		//hagl_clear_screen();
 		lcd_copy(); // update LCD (send buffer from i.e hagl_put_text)
+	}
+}
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim == &htim3) {
+		encoder_value = __HAL_TIM_GET_COUNTER(&htim3);
+		if (encoder_value != prev_value) {
+			hagl_fill_rectangle(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1, BLACK);
+			wchar_t buffer_encoder[32];
+			swprintf(buffer_encoder, sizeof(buffer_encoder), L"Encoder: %d", encoder_value);
+			hagl_put_text(buffer_encoder, 10, 10, YELLOW, font6x9);
+			prev_value = encoder_value;
+		}
 	}
 }
 
@@ -130,20 +150,24 @@ int main(void)
   MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_SPI2_Init();
-  MX_TIM7_Init();
+  MX_TIM3_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  HAL_TIM_Base_Start_IT(&htim6);
+  HAL_TIM_Base_Start(&htim3);
+  HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
+
   lcd_init();
-
-  bitmap_t bitmap_intro;
-  init_bitmap(&bitmap_intro, image_intro, image_intro_size, LCD_WIDTH, LCD_HEIGHT);
-  hagl_blit(0, 0, &bitmap_intro);
-
-  lcd_copy();
+//  bitmap_t bitmap_intro;
+//  init_bitmap(&bitmap_intro, image_intro, image_intro_size, LCD_WIDTH, LCD_HEIGHT);
+//  hagl_blit(0, 0, &bitmap_intro);
+//  lcd_copy();
+//  hagl_clear_screen();
 
   while (1)
   {
