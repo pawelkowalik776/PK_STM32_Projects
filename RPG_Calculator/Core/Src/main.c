@@ -33,6 +33,8 @@
 #include "images.h"
 #include <stdio.h>
 #include <wchar.h>
+#include <math.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,7 +44,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define DEBOUNCE_DELAY 50
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -54,24 +56,44 @@
 
 /* USER CODE BEGIN PV */
 
-// gamma correction for WS2812B
-const uint8_t gamma8[] = {
-		0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-		0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
-		1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,  2,
-		2,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  5,  5,  5,
-		5,  6,  6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10,
-		10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16,
-		17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 24, 24, 25,
-		25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36,
-		37, 38, 39, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 50,
-		51, 52, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 66, 67, 68,
-		69, 70, 72, 73, 74, 75, 77, 78, 79, 81, 82, 83, 85, 86, 87, 89,
-		90, 92, 93, 95, 96, 98, 99,101,102,104,105,107,109,110,112,114,
-		115,117,119,120,122,124,126,127,129,131,133,135,137,138,140,142,
-		144,146,148,150,152,154,156,158,160,162,164,167,169,171,173,175,
-		177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
-		215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
+// variable indicating current state of the program. Used in switch case in main loop
+typedef enum {
+	STATE_INIT,
+	STATE_WAITING_FOR_ATK_DICE,
+	STATE_WAITING_FOR_DEF_DICE,
+	STATE_ATTACK_MISSED_DELAY,
+	STATE_WAITING_FOR_HP,
+	STATE_WAITING_FOR_ARMOR,
+	STATE_WAITING_FOR_DMG,
+	STATE_WAITING_FOR_LOCATION,
+	STATE_WAITING_FOR_REDUCTION,
+	STATE_CALCULATION
+} ProgramState;
+
+// variables to be input by user and calculated by program
+volatile static uint8_t rollATK = 0;
+volatile static uint8_t rollDEF = 0;
+volatile static uint8_t targetHP = 0;
+volatile static uint8_t targetARMOR = 0;
+volatile static uint8_t enteredDMG = 0;
+volatile static float locationMultiplier = 0;
+volatile static float armorTypeMultiplier = 0;
+volatile static uint8_t critDMG = 0;
+volatile static float totalDMG = 0;
+
+// initial state of the program
+static ProgramState state = STATE_INIT;
+
+// variables needed to use button as interruption, featuring debouncing
+static volatile uint32_t lastDebounceTime = 0;
+static volatile bool debounceActive = false;
+static volatile bool buttonConfirm = false;
+//static volatile bool buttonPressed = false;
+
+// variables needed to use encoder for input data and navigate through program
+volatile int32_t encoder_value = 0;
+int16_t prev_encoder_value = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -82,10 +104,9 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-volatile int32_t encoder_value = 0;
-int16_t prev_value = 0;
 
-// function for sending text using UART (i.e to PC)
+
+// function for sending text using UART (i.e to PC, mainly for debugging)
 int __io_putchar(int ch)
 {
 	if (ch == '\n')
@@ -95,28 +116,100 @@ int __io_putchar(int ch)
 	return 1;
 }
 
+// function to check how many digits value has (used in displaying digits on LCD)
+int howManyDigits(double value)
+{
+	// if value == 0, then 1 digit
+	if (!value)
+		return 1;
+	else
+		return (int)log10(fabs(value)) + 1;;
+}
+
+// val - value to be coverted into string
+// *text - pointer to string text that will be attached before value
+// color - color of whole text, x0,y0 - starting point of "drawing" text on screen
+void textStringCombiner(int32_t val, const wchar_t *text, color_t color, int16_t x0, int16_t y0)
+{
+
+		if ( howManyDigits(encoder_value) != howManyDigits(prev_encoder_value) )
+			hagl_fill_rectangle(wcslen(text)*6+6, y0, wcslen(text)*6+6 + 3*6, y0 + 9, BLACK); 	// "delete" additional digit when number of digits change (10 -> 9)
+
+		wchar_t buffer[16];																		// declaration of string that will contain value "val"
+		wchar_t result[32] = L""; 																// empty string initialization
+
+		swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L" %d", val);						// enter "val" to string "buffer"
+
+		wcscat(result, text);																	// input "text" in "result" string
+		wcscat(result, buffer);																	// add "buffer" string (val) to "result" string
+		hagl_put_text(result, x0, y0, color, font6x9);											// draw it on the screen using input coordinates
+
+}
+
+//void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+//{
+//	if (GPIO_Pin == ENCODER_BUTTON_Pin) {
+//		if (!debounceActive) {
+//			debounceActive = true;
+//			lastDebounceTime = HAL_GetTick();
+//			buttonPressed = HAL_GPIO_ReadPin(ENCODER_BUTTON_GPIO_Port, ENCODER_BUTTON_Pin);
+//		}
+//	}
+//}
+
+//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+//{
+//	if (htim == &htim6) { //Timer nr 6 is used for refreshing screen
+//		lcd_copy(); // update LCD (send buffer from i.e hagl_put_text)
+//	} else if (htim == &htim7) {
+//		uint32_t currentTime = HAL_GetTick();
+//
+//		if (debounceActive && (currentTime - lastDebounceTime >= DEBOUNCE_DELAY)) {
+//			debounceActive = false;
+//
+//			bool currentButtonState = HAL_GPIO_ReadPin(ENCODER_BUTTON_GPIO_Port, ENCODER_BUTTON_Pin);
+//
+//			if (currentButtonState == buttonPressed) {
+//				if (buttonPressed) {
+//					buttonConfirm = true;
+//				}
+//			}
+//
+//		}
+//
+//	}
+//}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if (GPIO_Pin == ENCODER_BUTTON_Pin) {
+		if (!debounceActive) {
+			debounceActive = true;
+			lastDebounceTime = HAL_GetTick();
+			buttonConfirm = true;
+		}
+	}
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim == &htim6) { //Timer nr 6 is used for refreshing screen
-		//hagl_clear_screen();
 		lcd_copy(); // update LCD (send buffer from i.e hagl_put_text)
+	} else if (htim == &htim7) {
+		uint32_t currentTime = HAL_GetTick();
+
+		if (debounceActive && (currentTime - lastDebounceTime >= DEBOUNCE_DELAY)) {
+			debounceActive = false;
+		}
 	}
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim == &htim3) {
-		encoder_value = __HAL_TIM_GET_COUNTER(&htim3);
-		if (encoder_value != prev_value) {
-			hagl_fill_rectangle(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1, BLACK);
-			wchar_t buffer_encoder[32];
-			swprintf(buffer_encoder, sizeof(buffer_encoder), L"Encoder: %d", encoder_value);
-			hagl_put_text(buffer_encoder, 10, 10, YELLOW, font6x9);
-			prev_value = encoder_value;
-		}
+		encoder_value = __HAL_TIM_GET_COUNTER(&htim3)/2;
 	}
 }
-
 /* USER CODE END 0 */
 
 /**
@@ -152,25 +245,266 @@ int main(void)
   MX_SPI2_Init();
   MX_TIM3_Init();
   MX_TIM6_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  lcd_init();
+
   HAL_TIM_Base_Start_IT(&htim6);
   HAL_TIM_Base_Start(&htim3);
   HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
+  HAL_TIM_Base_Start_IT(&htim7);
 
-  lcd_init();
-//  bitmap_t bitmap_intro;
-//  init_bitmap(&bitmap_intro, image_intro, image_intro_size, LCD_WIDTH, LCD_HEIGHT);
-//  hagl_blit(0, 0, &bitmap_intro);
-//  lcd_copy();
-//  hagl_clear_screen();
+  bitmap_t bitmap_intro;
+  init_bitmap(&bitmap_intro, image_intro, image_intro_size, LCD_WIDTH, LCD_HEIGHT);
+  hagl_blit(0, 0, &bitmap_intro);
+  //lcd_copy();
+  HAL_Delay(500);
+  hagl_clear_screen();
+  //lcd_copy();
 
   while (1)
   {
+	  switch (state)
+	  {
+	  case STATE_INIT:
+		  hagl_put_text(L"Enter ATK roll:", 5, 5, YELLOW, font6x9);
+		  state = STATE_WAITING_FOR_ATK_DICE;
+		  break;
+
+	  case STATE_WAITING_FOR_ATK_DICE:
+
+		  if (encoder_value != prev_encoder_value) { 													// code below executed only if value of encoder has beem changed
+			  textStringCombiner(encoder_value, L"Enter ATK roll:", YELLOW, 5, 5);
+			  prev_encoder_value = encoder_value;
+		  }
+
+			if (buttonConfirm) {
+				buttonConfirm = false;
+				rollATK = encoder_value;
+				hagl_put_text(L"Enter DEF roll: ", 5, 15, YELLOW, font6x9); 							// po to zeby wysweetlic przed ruszeniem enkoderem
+				state = STATE_WAITING_FOR_DEF_DICE;
+			}
+		  //hagl_put_text(L"Enter ATK roll:", 10, 10, YELLOW, font6x9);
+		  break;
+
+	  case STATE_WAITING_FOR_DEF_DICE:
+
+		if (encoder_value != prev_encoder_value) {
+			textStringCombiner(encoder_value, L"Enter DEF roll:", YELLOW, 5, 15);
+			prev_encoder_value = encoder_value;
+		}
+
+		  if (buttonConfirm) {
+			  buttonConfirm = false;
+			  rollDEF = encoder_value;
+			  //state = NEXT_STEP;
+
+			  if (rollATK <= rollDEF) {
+				  state = STATE_ATTACK_MISSED_DELAY;
+				  hagl_clear_screen();
+				  encoder_value = 0; // zerowanie nie dziala
+				  rollATK = 0;
+				  rollDEF = 0;
+
+			  } else {
+				  hagl_put_text(L"Enter target's HP:", 5, 25, YELLOW, font6x9);
+				  state = STATE_WAITING_FOR_HP;
+			  }
+		  }
+		  break;
+
+	  case STATE_ATTACK_MISSED_DELAY:
+		  hagl_put_text(L"--- ATTACK MISSED ---", 18, LCD_HEIGHT/2-5, GREEN, font6x9);
+
+		  if (buttonConfirm) {
+			  buttonConfirm = false;
+			  hagl_clear_screen();
+			  state = STATE_INIT;
+		  }
+		  break;
+
+
+	  case STATE_WAITING_FOR_HP:
+
+		if (encoder_value != prev_encoder_value) {
+			textStringCombiner(encoder_value, L"Enter target's HP:", YELLOW, 5, 25);
+			prev_encoder_value = encoder_value;
+		}
+
+		  if (buttonConfirm) {
+			  buttonConfirm = false;
+			  targetHP = encoder_value;
+			  hagl_put_text(L"Enter target's ARMOR:", 5, 35, YELLOW, font6x9);
+			  state = STATE_WAITING_FOR_ARMOR;
+		  }
+		  break;
+
+	  case STATE_WAITING_FOR_ARMOR:
+
+		if (encoder_value != prev_encoder_value) {
+			textStringCombiner(encoder_value, L"Enter target's ARMOR:", YELLOW, 5, 35);
+			prev_encoder_value = encoder_value;
+		}
+
+		  if (buttonConfirm) {
+			  buttonConfirm = false;
+			  targetARMOR = encoder_value;
+			  hagl_put_text(L"Enter total DMG:", 5, 45, YELLOW, font6x9);
+			  state = STATE_WAITING_FOR_DMG;
+		  }
+		  break;
+
+	  case STATE_WAITING_FOR_DMG:
+
+		if (encoder_value != prev_encoder_value) {
+			textStringCombiner(encoder_value, L"Enter total DMG:", YELLOW, 5, 45);
+			prev_encoder_value = encoder_value;
+		}
+
+		  if (buttonConfirm) {
+			  buttonConfirm = false;
+			  enteredDMG = encoder_value;
+			  hagl_put_text(L"Enter location of attack:", 5, 55, YELLOW, font6x9);
+			  hagl_put_text(L"x1/2", 10, 67, YELLOW, font6x9);
+			  hagl_put_text(L"x1", 75, 67, YELLOW, font6x9);
+			  hagl_put_text(L"x3", 135, 67, YELLOW, font6x9);
+			  state = STATE_WAITING_FOR_LOCATION;
+		  }
+		  break;
+
+	  case STATE_WAITING_FOR_LOCATION:
+
+		  if ( (encoder_value % 3) == 0) {
+			  hagl_draw_rounded_rectangle(8, 65, 9+4*6+2, 65+11, 1, GREEN);
+			  hagl_draw_rounded_rectangle(73, 65, 74+2*6+1, 65+11, 1, BLACK);
+			  hagl_draw_rounded_rectangle(133, 65, 134+2*6+2, 65+11, 1, BLACK);
+		  } else if ( (encoder_value % 3) == 1) {
+			  hagl_draw_rounded_rectangle(73, 65, 74+2*6+1, 65+11, 1, GREEN);
+			  hagl_draw_rounded_rectangle(8, 65, 9+4*6+2, 65+11, 1, BLACK);
+			  hagl_draw_rounded_rectangle(133, 65, 134+2*6+2, 65+11, 1, BLACK);
+		  } else {
+			  hagl_draw_rounded_rectangle(133, 65, 134+2*6+2, 65+11, 1, GREEN);
+			  hagl_draw_rounded_rectangle(8, 65, 9+4*6+2, 65+11, 1, BLACK);
+			  hagl_draw_rounded_rectangle(73, 65, 74+2*6+1, 65+11, 1, BLACK);
+		  }
+
+		  if (buttonConfirm) {
+			  buttonConfirm = false;
+
+			  if ( (encoder_value % 3) == 0) {
+				  locationMultiplier = 0.5;
+			  } else if ( (encoder_value % 3) == 1) {
+				  locationMultiplier = 1;
+			  } else {
+				  locationMultiplier = 3;
+			  }
+
+			  hagl_put_text(L"Enter armor multiplier:", 5, 81, YELLOW, font6x9);
+			  hagl_put_text(L"x1/2", 10, 81+12, YELLOW, font6x9);
+			  hagl_put_text(L"x1", 75, 81+12, YELLOW, font6x9);
+			  hagl_put_text(L"x2", 135, 81+12, YELLOW, font6x9);
+			  state = STATE_WAITING_FOR_REDUCTION;
+		  }
+
+		  break;
+
+	  case STATE_WAITING_FOR_REDUCTION:
+
+		  if ( (encoder_value % 3) == 0) {
+			  hagl_draw_rounded_rectangle(8, 91, 9+4*6+2, 91+11, 1, GREEN);
+			  hagl_draw_rounded_rectangle(73, 91, 74+2*6+1, 91+11, 1, BLACK);
+			  hagl_draw_rounded_rectangle(133, 91, 134+2*6+2, 91+11, 1, BLACK);
+		  } else if ( (encoder_value % 3) == 1) {
+			  hagl_draw_rounded_rectangle(73, 91, 74+2*6+1, 91+11, 1, GREEN);
+			  hagl_draw_rounded_rectangle(8, 91, 9+4*6+2, 91+11, 1, BLACK);
+			  hagl_draw_rounded_rectangle(133, 91, 134+2*6+2, 91+11, 1, BLACK);
+		  } else {
+			  hagl_draw_rounded_rectangle(133, 91, 134+2*6+2, 91+11, 1, GREEN);
+			  hagl_draw_rounded_rectangle(8, 91, 9+4*6+2, 91+11, 1, BLACK);
+			  hagl_draw_rounded_rectangle(73, 91, 74+2*6+1, 91+11, 1, BLACK);
+		  }
+
+		  if (buttonConfirm) {
+			  buttonConfirm = false;
+
+			  if ( (encoder_value % 3) == 0) {
+				  armorTypeMultiplier = 0.5;
+			  } else if ( (encoder_value % 3) == 1) {
+				  armorTypeMultiplier = 1;
+			  } else {
+				  armorTypeMultiplier = 2;
+			  }
+
+			  state = STATE_CALCULATION;
+
+		  }
+
+		  break;
+
+	  case STATE_CALCULATION:
+
+		  if ( (rollATK - rollDEF >= 7) && (rollATK - rollDEF <= 9) ) {
+			  critDMG = 3;
+		  } else if ( (rollATK - rollDEF >= 10) && (rollATK - rollDEF <= 12) ) {
+			  critDMG = 5;
+		  } else if ( (rollATK - rollDEF >= 13) && (rollATK - rollDEF <= 14) ) {
+			  critDMG = 8;
+		  } else if ( rollATK - rollDEF >= 15 ) {
+			  critDMG = 10;
+		  }
+
+		  totalDMG = floor(floor((enteredDMG - targetARMOR) * armorTypeMultiplier) * locationMultiplier) + critDMG;
+
+		  hagl_draw_line(0, 103, LCD_WIDTH, 103, YELLOW);
+
+		  if (totalDMG > 0) {
+			  textStringCombiner(totalDMG, L"TOTAL DMG:", RED, 5, 107);
+			  textStringCombiner( (targetHP - totalDMG), L"HP left:", RED, 85, 107);
+
+			  switch (critDMG) {
+			  case 3:
+				  hagl_put_text(L"LIGHT CRITICAL WOUND", 5, 117, RED, font6x9);
+				  break;
+
+			  case 5:
+				  hagl_put_text(L"MEDIUM CRITICAL WOUND", 5, 117, RED, font6x9);
+				  break;
+
+			  case 8:
+				  hagl_put_text(L"HEAVY CRITICAL WOUND", 5, 117, RED, font6x9);
+				  break;
+
+			  case 10:
+				  hagl_put_text(L"DEADLY CRITICAL WOUND", 5, 117, RED, font6x9);
+				  break;
+			  default:
+				  break;
+			  }
+
+		  } else {
+			  textStringCombiner(0, L"TOTAL DMG:", GREEN, 5, 107);
+		  }
+
+		  if (buttonConfirm) {
+			  buttonConfirm = false;
+			  totalDMG = 0;
+			  critDMG = 0;
+			  enteredDMG = 0;
+			  targetARMOR = 0;
+			  armorTypeMultiplier = 0;
+			  locationMultiplier = 0;
+			  hagl_clear_screen();
+			  state = STATE_INIT;
+		  }
+
+		  break;
+
+		  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

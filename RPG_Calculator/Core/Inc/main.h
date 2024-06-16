@@ -65,6 +65,9 @@ void Error_Handler(void);
 #define USART_RX_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
+#define ENCODER_BUTTON_Pin GPIO_PIN_4
+#define ENCODER_BUTTON_GPIO_Port GPIOC
+#define ENCODER_BUTTON_EXTI_IRQn EXTI4_IRQn
 #define LCD_RST_Pin GPIO_PIN_2
 #define LCD_RST_GPIO_Port GPIOB
 #define LCD_DC_Pin GPIO_PIN_11
